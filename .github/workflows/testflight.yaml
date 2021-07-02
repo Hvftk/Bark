@@ -3,9 +3,13 @@ name: Deploy to Testflight
 on:
   workflow_dispatch:
     inputs:
+      storeVersionNumber:
+        description: 'Store Version Number'
+        required: true
+        default: ""
       buildNumber:
         description: 'Build Number'
-        required: false
+        required: true
         default: ""
 
 jobs:
@@ -27,6 +31,14 @@ jobs:
         ruby-version: 2.7.2
         bundler-cache: true
 
+    - uses: actions/cache@v2
+      id: pods-cache
+      with:
+        path: Pods
+        key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pods-
+
     - name: Install Pods
       run: pod install
 
@@ -34,11 +46,10 @@ jobs:
       run: |
         export LC_ALL=en_US.UTF-8
         export LANG=en_US.UTF-8
-        bundle exec fastlane beta
+        bundle exec fastlane beta store_version_number:${{ github.event.inputs.storeVersionNumber }} build_number:${{ github.event.inputs.buildNumber }}
       env:
         APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         APP_STORE_CONNECT_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
         BARK_KEY: ${{ secrets.BARK_KEY }}
-        BUILD_NUMBER: ${{ github.event.inputs.buildNumber }}
         MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
